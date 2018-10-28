@@ -13,22 +13,16 @@ class ProcessDoc:
 
     def run(self):
         for filename in os.listdir(self.path):
-            token = self.load_file(os.path.join(self.path, filename))
-
-            if self.lemma == 1:
-                token.apply_lemma()
-            elif self.stem == 1:
-                token.apply_stemming()
-
-            doc_dic = token.tokenize()
+            doc_dic = self.load_file(os.path.join(self.path, filename))
 
             for key, value in doc_dic.items():
 
                 # add token to dictionary if not exist
                 if key not in self.collection_dic:
-                    self.collection_dic[key] = [value]
+                    self.collection_dic[key] = [1, value]
                 # increase the frequency by one if exist in the dictionary
                 else:
+                    self.collection_dic[key][0] += 1
                     self.collection_dic[key].append(value)
 
     def load_file(self, url):
@@ -45,6 +39,16 @@ class ProcessDoc:
         text = mydoc.getElementsByTagName('TEXT')[0]
         data = text.firstChild.data
 
-        return Token.Token(data, doc_no)
+        token = Token.Token()
+
+        if self.lemma == 1:
+            token.apply_lemma()
+        elif self.stem == 1:
+            token.apply_stemming()
+
+        return token.tokenize(data, doc_no)
+
+
+
 
 
