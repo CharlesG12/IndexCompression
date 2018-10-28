@@ -13,17 +13,18 @@ class ProcessDoc:
 
     def run(self):
         for filename in os.listdir(self.path):
-            doc_dic = self.load_file(os.path.join(self.path, filename))
+            doc_no, doclen, max_tf, doc_dic = self.load_file(os.path.join(self.path, filename))
 
             for key, value in doc_dic.items():
 
                 # add token to dictionary if not exist
                 if key not in self.collection_dic:
-                    self.collection_dic[key] = [1, value]
+                    self.collection_dic[key] = [1, value, [doc_no, value, doclen, max_tf]]
                 # increase the frequency by one if exist in the dictionary
                 else:
                     self.collection_dic[key][0] += 1
-                    self.collection_dic[key].append(value)
+                    self.collection_dic[key][1] += value
+                    self.collection_dic[key].append([doc_no, value, doclen, max_tf])
 
     def load_file(self, url):
         doc_dic = []

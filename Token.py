@@ -54,29 +54,28 @@ class Token:
                 if self.applyStemming == 1:
                     processed_word = Stemmer.stemming(processed_word)
                 # apply lemmatization
+                # add new key to dictionary
                 if self.applyLemma == 1:
                     processed_word = Lemmatizer.lemmatizing(processed_word)
-                # add new key to dictionary
                 if processed_word not in book_dict:
-                    book_dict[processed_word] = [doc_no, 1, doclen]
+                    book_dict[processed_word] = 1
                 # increment value by 1 if key exist
                 else:
-                    book_dict[processed_word] = [doc_no, book_dict[processed_word][1] + 1, doclen]
+                    book_dict[processed_word] += 1
+            max_tf = self.add_doc_info(book_dict)
+        return doc_no, doclen, max_tf, book_dict
 
-        return book_dict
-
-    # def add_doc_info(self, dictionary):
-    #     # max_entry structure: [df, [doc_no, tf, doclen]], "term"]
-    #     max_entry = max(zip(dictionary.values(), dictionary.keys()))
-    #     max_value = max_entry[0][1][1]
-    #     maxtf = [max_value, max_entry[1]]
-    #
-    #     for key, value in dictionary:
-    #         if value[1][1] == max_value:
-    #             maxtf.append(key)
-    #     for key, value in dictionary:
-
-
+    # return max_tf value, and list of term
+    def add_doc_info(self, dictionary):
+        max_value = 1
+        max_tf = [max_value]
+        for key, value in dictionary.items():
+            if value == max_value:
+                max_tf.append(key)
+            elif value > max_value:
+                max_value = value
+                max_tf = [value, key]
+        return max_value
 
     # return a list of processed word
     # [doc_no, term1, term2 ...]
