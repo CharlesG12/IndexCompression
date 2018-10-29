@@ -1,7 +1,6 @@
 import TokenRules
 import Stemmer
 import Lemmatizer
-import operator
 
 # return a dictionary
 # {term: [doc_no, tf]}
@@ -62,8 +61,8 @@ class Token:
                 # increment value by 1 if key exist
                 else:
                     book_dict[processed_word] += 1
-            max_tf = self.add_doc_info(book_dict)
-        return doc_no, doclen, max_tf, book_dict
+            doc_max_tf = self.add_doc_info(book_dict)
+        return doc_no, doclen, doc_max_tf, book_dict
 
     # return max_tf value, and list of term
     def add_doc_info(self, dictionary):

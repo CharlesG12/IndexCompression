@@ -27,8 +27,6 @@ class ProcessDoc:
                     self.collection_dic[key].append([doc_no, value, doclen, max_tf])
 
     def load_file(self, url):
-        doc_dic = []
-
         # parse xml doc from the url
         mydoc = minidom.parse(url)
 

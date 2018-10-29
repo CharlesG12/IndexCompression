@@ -2,12 +2,15 @@ import ProcessDoc
 import time
 import csv
 import Token
+import Encoding
+import copy
 
 doc_path = 'D:\\Classes\\CSS6322 Information Retrival\\HW1\Token\\backup\\'
 
 # dictionary structure
-# term ---->   df, [ [doc_no, tf, doclen, max_tf(maxtf, term1, ...])]]
+# term: df, tf [[doc_no, tf, doclen, max_tf]]
 
+print("Building stem dictionary")
 s_start_time = time.time()
 stem_processor = ProcessDoc.ProcessDoc(doc_path, 0, 1)
 stem_processor.run()
@@ -15,24 +18,79 @@ stem_dic = stem_processor.collection_dic
 s_sorted_terms = sorted(stem_dic.items(), key=lambda kv: kv[0])
 s_end_time = time.time()
 
-
-l_start_time = time.time()
-lemma_processor = ProcessDoc.ProcessDoc(doc_path, 1, 0)
-lemma_processor.run()
-lemma_dic = lemma_processor.collection_dic
-l_sorted_terms = sorted(lemma_dic.items(), key=lambda kv: kv[0])
-l_end_time = time.time()
-
-# for item in sorted_terms:
-
 #     print(item)
 print("time spend for building stem dictionary: " + str(s_end_time - s_start_time))
 
-print("time spend for building lemma dictionary: " + str(l_end_time - l_start_time))
-f = 8
+
+# print("Building lemma dictionary")
+# l_start_time = time.time()
+# lemma_processor = ProcessDoc.ProcessDoc(doc_path, 1, 0)
+# lemma_processor.run()
+# lemma_dic = lemma_processor.collection_dic
+# l_sorted_terms = sorted(lemma_dic.items(), key=lambda kv: kv[0])
+# l_end_time = time.time()
+
+# print("time spend for building lemma dictionary: " + str(l_end_time - l_start_time))
+# f = 8
+
+encoder = Encoding.Encoding()
 
 
-def write_csv(dictionary, name):
+def block_compression(dictionary):
+    print(" proceeding block compression ")
+    block_compressed = encoder.blocked_compression(dictionary, 8)
+    return block_compressed
+
+
+def front_compression(dictionary):
+    print(" proceeding front compression ")
+    front_compressed = encoder.front_coding_compression(dictionary, 4, 8)
+    return front_compressed
+
+
+def gamma_compression(dictionary):
+    print(" proceeding gamma compression ")
+    encoded_postings_list = []
+    encoded_posting_list_docno = []
+    for key, value in dictionary:
+        new_postings_list = copy.deepcopy(value)
+        latest_docno = value[2][0]
+        doc_list = []
+        for index in range(3, len(value)):
+            gap = value[index][0] - latest_docno
+            gamma_code = encoder.gamma_encoding(gap)
+            doc_list.append(gamma_code)
+            # comment this off to change dictionary postings_list to gamma code
+            new_postings_list[index][0] = gamma_code
+            latest_docno = value[index][0]
+        encoded_posting_list_docno.append(doc_list)
+        encoded_postings_list.append(new_postings_list)
+    print()
+    return [encoded_posting_list_docno, encoded_postings_list]
+
+
+def delta_compression(dictionary):
+    print(" proceeding delta compression ")
+    encoded_postings_list = []
+    encoded_posting_list_docno = []
+    for key, value in dictionary:
+        new_postings_list = copy.deepcopy(value)
+        latest_docno = value[2][0]
+        doc_list = [latest_docno]
+        for index in range(3, len(value)):
+            gap = value[index][0] - latest_docno
+            gamma_code = encoder.delta_encoding(gap)
+            doc_list.append(gamma_code)
+            # comment this off to change dictionary postings_list to gamma code
+            new_postings_list[index][0] = gamma_code
+            latest_docno = value[index][0]
+        encoded_posting_list_docno.append(doc_list)
+        encoded_postings_list.append(new_postings_list)
+    print()
+    return [encoded_posting_list_docno, encoded_postings_list]
+
+
+def write_file(dictionary, name):
     filewriter = csv.writer(open(name, "w"))
     for key, val in dictionary.items():
         filewriter.writerow([key, val])
@@ -44,7 +102,7 @@ def write_binary_file(dictionary, name):
             file.write(bytearray(key, 'utf-8'))
 
 
-write_csv(stem_dic, "stem_dict.txt")
+write_file(stem_dic, "stem_dict.txt")
 write_binary_file(stem_dic, "stem_dict.bin")
 
 
@@ -59,7 +117,6 @@ def info_term():
     lemma_token.apply_lemma()
     lemma_token.tokenize(words, 1)
     l_doc_no, l_doclen, l_max_tf, l_book_dict = stem_token.tokenize(words, 1)
-
 
     # for stemming part:
     for key in s_book_dict.items():
@@ -113,6 +170,7 @@ def min_max_fun(dictionary):
             min_list = str(key)
     return min_value, min_list, max_value, max_list
 
+
 def min_max():
     l_min_value, l_min_list, l_max_value, l_max_list = min_max_fun(lemma_dic)
     s_min_value, s_min_list, s_max_value, s_max_list = min_max_fun(stem_dic)
@@ -163,13 +221,36 @@ def run_collections():
     print("     The lowest doclen: {}, doc_no: {}".format(s_max_doclen, s_max_doclen_list))
 
 
+def index1_compress(dictionary):
+    print("compressing Index 1")
+    start_time = time.time()
+    # term_info: term_string, pointer_list
+    term_info = block_compression(dictionary)
+    # list_info: postings_list_docno_only, postings_list
+    list_info = gamma_compression(dictionary)
+    time_spend = time.time() - start_time
+    print("time spend: " + str(time_spend))
+
+
+def index2_compress(dictionary):
+    print("compressing Index 2")
+    start_time = time.time()
+    # term_info: term_string, pointer_list
+    term_info = front_compression(dictionary)
+    # list_info: postings_list_docno_only, postings_list
+    list_info = delta_compression(dictionary)
+    time_spend = time.time() - start_time
+    print("time spend: " + str(time_spend))
+
+
+
 #############################
-info_term()
-nasa()
-min_max()
-run_collections()
-
-
-
-
-
+# info_term()
+# nasa()
+# min_max()
+# run_collections()
+# block_compression(s_sorted_terms)
+# front_compression(s_sorted_terms)
+# gamma_compression(s_sorted_terms)
+# delta_compression(s_sorted_terms)
+index1_compress(s_sorted_terms)
